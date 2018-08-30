@@ -1,8 +1,8 @@
 (function () {
   var exports = (typeof module !== 'undefined' && module.exports)  || window;
 
-  var cryptoSubtle = (window.crypto && crypto.subtle) ||
-    (window.crypto && crypto.webkitSubtle) ||
+  var cryptoSubtle = (crypto && crypto.subtle) ||
+    (crypto && crypto.webkitSubtle) ||
     (window.msCrypto && window.msCrypto.Subtle);
 
   if (!cryptoSubtle) {
@@ -27,7 +27,7 @@
 
   function utf8ToUint8Array(str) {
       var chars = [];
-      str = window.btoa(unescape(encodeURIComponent(str)));
+      str = btoa(unescape(encodeURIComponent(str)));
       return Base64URL.parse(str);
   }
 
@@ -209,7 +209,7 @@
     }
 
     // TODO Use shim or document incomplete browsers
-    var result = window.atob(output);
+    var result = atob(output);
 
     try{
       return decodeURIComponent(escape(result));
