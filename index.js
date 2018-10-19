@@ -39,7 +39,7 @@
     return arg !== null && typeof arg === 'object';
   }
 
-  exports.verifyJWT = function signJWT(token, secret, alg, cb) {
+  exports.verifyJWT_cb = function (token, secret, alg, cb) {
     if (!isFunction(cb)) {
       throw new Error('cb must be a function');
     }
@@ -109,7 +109,16 @@
     }, cb);
   };
 
-  exports.signJWT = function signJWT(payload, secret, alg, cb) {
+	exports.verifyJWT = function (payload, shared_secret, algorithm) {
+		return new Promise(function(resolve, reject) {
+			exports.verifyJWT_cb(payload, shared_secret, algorithm, function(err, token) {
+				if (err !== null) return reject(err);
+				resolve(token);
+			});
+		});
+	}
+	
+  exports.signJWT_cb = function (payload, secret, alg, cb) {
     if (!isFunction(cb)) {
       throw new Error('cb must be a function');
     }
@@ -193,6 +202,15 @@
     }, cb);
   };
 
+	exports.signJWT = function (payload, shared_secret, algorithm) {
+		return new Promise(function(resolve, reject) {
+			exports.signJWT_cb(payload, shared_secret, algorithm, function(err, token) {
+				if(err !== null) return reject(err);
+				resolve(token);
+			});
+		});
+	}
+		
   exports.decodeJWT = function (token) {
     var output = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     switch (output.length % 4) {
