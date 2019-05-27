@@ -72,8 +72,6 @@
 
       // TODO Test utf8ToUint8Array function
       var messageAsUint8Array = utf8ToUint8Array(partialToken);
-      // TODO Test utf8ToUint8Array function
-      var signatureAsUint8Array = utf8ToUint8Array(signaturePart);
       cryptoSubtle.sign(
         importAlgorithm.name,
         key,
