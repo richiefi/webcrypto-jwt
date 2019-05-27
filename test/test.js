@@ -50,7 +50,7 @@ verifyJWT(token, 'secret', null).then(expNotCalled, (err) => {
 });
 
 verifyJWT(token, 'secret', 'POSE123').then(expNotCalled, (err) => {
-  assert.equal('algorithm not found', err.message);
+  assert.equal('Expecting HS256 or ES256 for alg', err.message);
 });
 
 verifyJWT().then(expNotCalled, (err) => { assert(err); });
