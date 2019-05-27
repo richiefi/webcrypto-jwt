@@ -152,8 +152,8 @@
 				resolve(token);
 			});
 		});
-	}
-	
+  }
+
   exports.signJWT_cb = function (payload, secret, alg, cb) {
     if (!isFunction(cb)) {
       throw new Error('cb must be a function');
@@ -246,7 +246,7 @@
 			});
 		});
 	}
-		
+
   exports.decodeJWT = function (token) {
     var output = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     switch (output.length % 4) {
