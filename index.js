@@ -39,21 +39,9 @@
     return arg !== null && typeof arg === 'object';
   }
 
-  exports.verifyJWT_cb = function (token, secret, alg, cb) {
-    if (!isFunction(cb)) {
-      throw new Error('cb must be a function');
-    }
-
-    if (!isString(token)) {
-      return cb(new Error('token must be a string'));
-    }
-
-    if (!isString(secret)) {
+  function verifyJWTHS256(token, sharedSecret, cb) {
+    if (!isString(sharedSecret)) {
       return cb(new Error('secret must be a string'));
-    }
-
-    if (!isString(alg)) {
-      return cb(new Error('alg must be a string'));
     }
 
     var tokenParts = token.split('.');
@@ -62,23 +50,15 @@
       return cb(new Error('token must have 3 parts'));
     }
 
-    var algorithms = {
-      HS256: {
-        name: 'HMAC',
-        hash: {
-          name: 'SHA-256'
-        }
+    var importAlgorithm = {
+      name: 'HMAC',
+      hash: {
+        name: 'SHA-256'
       }
     };
 
-    var importAlgorithm = algorithms[alg];
-
-    if (!importAlgorithm) {
-      return cb(new Error('algorithm not found'));
-    }
-
     // TODO Test utf8ToUint8Array function
-    var keyData = utf8ToUint8Array(secret);
+    var keyData = utf8ToUint8Array(sharedSecret);
 
     cryptoSubtle.importKey(
       'raw',
@@ -105,13 +85,71 @@
         // TODO Time comparison
         cb(null, resBase64 === signaturePart);
       }, cb);
-
     }, cb);
+  }
+
+  function verifyJWTES256(token, publicKey, cb) {
+    if (!isObject(publicKey)) {
+      return cb(new Error('publicKey must be a JWK object'));
+    }
+
+    var tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      return cb(new Error('token must have 3 parts'));
+    }
+
+    var importAlgorithm = {
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      hash: 'SHA-256',
+    };
+
+    cryptoSubtle.importKey(
+      "jwk",
+      publicKey,
+      importAlgorithm,
+      false,
+      ["verify"]
+    ).then(function (key) {
+      var partialToken = tokenParts.slice(0,2).join('.');
+      var signaturePart = tokenParts[2];
+
+      cryptoSubtle.verify(
+        importAlgorithm,
+        key,
+        utf8ToUint8Array(signaturePart),
+        utf8ToUint8Array(partialToken)
+      ).then(function (ok) {
+        cb(null, ok);
+      }, cb);
+    }, cb);
+  }
+
+  exports.verifyJWT_cb = function (token, key, alg, cb) {
+    if (!isFunction(cb)) {
+      throw new Error('cb must be a function');
+    }
+
+    if (!isString(token)) {
+      return cb(new Error('token must be a string'));
+    }
+
+    if (!isString(alg)) {
+      return cb(new Error('alg must be a string'));
+    }
+
+    if (alg === 'HS256') {
+      return verifyJWTHS256(token, key, cb);
+    } else if (alg === 'ES256') {
+      return verifyJWTES256(token, key, cb);
+    } else {
+      return cb(new Error('Expecting HS256 or ES256 for alg'));
+    }
   };
 
-	exports.verifyJWT = function (payload, shared_secret, algorithm) {
+	exports.verifyJWT = function (payload, key, algorithm) {
 		return new Promise(function(resolve, reject) {
-			exports.verifyJWT_cb(payload, shared_secret, algorithm, function(err, token) {
+			exports.verifyJWT_cb(payload, key, algorithm, function(err, token) {
 				if (err !== null) return reject(err);
 				resolve(token);
 			});
