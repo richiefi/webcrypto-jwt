@@ -315,10 +315,10 @@
 				resolve(token);
 			});
 		});
-	}
+  }
 
-  exports.decodeJWT = function (token) {
-    var output = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  function decode(tokenPart) {
+    var output = tokenPart.replace(/-/g, '+').replace(/_/g, '/');
     switch (output.length % 4) {
       case 0:
         break;
@@ -340,7 +340,19 @@
     } catch (err) {
       return result;
     }
+  }
+
+  exports.decodeJWTHeader = function (token) {
+    return decode(token.split('.')[0]);
+  }
+
+  exports.decodeJWT = function (token) {
+    return decode(token.split('.')[1]);
   };
+
+  exports.parseJWTHeader = function (token) {
+    return JSON.parse(exports.decodeJWTHeader(token));
+  }
 
   exports.parseJWT = function (token) {
     // TODO: Handle when decodeJWT fails.
