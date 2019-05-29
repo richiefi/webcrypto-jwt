@@ -1,6 +1,74 @@
 (function () {
   var exports = (typeof module !== 'undefined' && module.exports)  || window;
 
+  // b64CodecParse is codec.parse from MIT-licensed https://github.com/swansontec/rfc4648.js
+  function b64CodecParse (string, encoding, opts = {}) {
+    // Build the character lookup table:
+    if (!encoding.codes) {
+      encoding.codes = {}
+      for (let i = 0; i < encoding.chars.length; ++i) {
+        encoding.codes[encoding.chars[i]] = i
+      }
+    }
+
+    // The string must have a whole number of bytes:
+    if (!opts.loose && (string.length * encoding.bits) & 7) {
+      throw new SyntaxError('Invalid padding')
+    }
+
+    // Count the padding bytes:
+    let end = string.length
+    while (string[end - 1] === '=') {
+      --end
+
+      // If we get a whole number of bytes, there is too much padding:
+      if (!opts.loose && !(((string.length - end) * encoding.bits) & 7)) {
+        throw new SyntaxError('Invalid padding')
+      }
+    }
+
+    // Allocate the output:
+    const out = new (opts.out || Uint8Array)(((end * encoding.bits) / 8) | 0)
+
+    // Parse the data:
+    let bits = 0 // Number of bits currently in the buffer
+    let buffer = 0 // Bits waiting to be written out, MSB first
+    let written = 0 // Next byte to write
+    for (let i = 0; i < end; ++i) {
+      // Read one character from the string:
+      const value = encoding.codes[string[i]]
+      if (value === void 0) {
+        throw new SyntaxError('Invalid character ' + string[i])
+      }
+
+      // Append the bits to the buffer:
+      buffer = (buffer << encoding.bits) | value
+      bits += encoding.bits
+
+      // Write out some bits if the buffer has a byte's worth:
+      if (bits >= 8) {
+        bits -= 8
+        out[written++] = 0xff & (buffer >> bits)
+      }
+    }
+
+    // Verify that we have received just enough bits:
+    if (bits >= encoding.bits || 0xff & (buffer << (8 - bits))) {
+      throw new SyntaxError('Unexpected end of data')
+    }
+
+    return out
+  }
+
+  // b64URLParse is based on base64url from MIT-licensed https://github.com/swansontec/rfc4648.js
+  function b64URLParse (string, opts) {
+    var encoding = {
+      chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_',
+      bits: 6
+    };
+    return b64CodecParse(string, encoding, opts);
+  }
+
   var cryptoSubtle = (crypto && crypto.subtle) ||
     (crypto && crypto.webkitSubtle) ||
     (window.msCrypto && window.msCrypto.Subtle);
@@ -86,7 +154,7 @@
     }, cb);
   }
 
-  function verifyJWTES256(token, publicKey, cb) {
+  function verifyJWTES(token, publicKey, curve, cb) {
     if (!isObject(publicKey)) {
       return cb(new Error('publicKey must be a JWK object'));
     }
@@ -98,7 +166,7 @@
 
     var importAlgorithm = {
       name: 'ECDSA',
-      namedCurve: 'P-256',
+      namedCurve: curve,
       hash: 'SHA-256',
     };
 
@@ -115,8 +183,8 @@
       cryptoSubtle.verify(
         importAlgorithm,
         key,
-        utf8ToUint8Array(signaturePart),
-        utf8ToUint8Array(partialToken)
+        b64URLParse(signaturePart, { loose: true }),
+        new TextEncoder().encode(partialToken),
       ).then(function (ok) {
         cb(null, ok);
       }, cb);
@@ -139,9 +207,11 @@
     if (alg === 'HS256') {
       return verifyJWTHS256(token, key, cb);
     } else if (alg === 'ES256') {
-      return verifyJWTES256(token, key, cb);
+      return verifyJWTES(token, key, 'P-256', cb);
+    } else if (alg === 'ES384') {
+      return verifyJWTES(token, key, 'P-384', cb);
     } else {
-      return cb(new Error('Expecting HS256 or ES256 for alg'));
+      return cb(new Error('Expecting HS256, ES256 or ES384 for alg'));
     }
   };
 
