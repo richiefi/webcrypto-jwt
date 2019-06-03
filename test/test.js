@@ -10,119 +10,89 @@ var claims = {
   admin: true
 }
 
+var assertNotCalled = (err) => { assert(!err); };
+
 assert.equal(claims, parseJWT(token));
 
 assert.equal(JSON.stringify(claims), decodeJWT(token));
 
-verifyJWT(token, 'secret', 'HS256', function (err, res) {
-  assert.ifError(err);
-  assert.equal(true, res);
-});
+verifyJWT(token, 'secret', 'HS256').then((res) => { assert.equal(true, res) }, assert.ifError);
 
-verifyJWT(token, 'secret2', 'HS256', function (err, res) {
-  assert.ifError(err);
-  assert.equal(false, res);
-});
+verifyJWT(token, 'secret2', 'HS256').then((res) => { assert.equal(false, res) }, assert.ifError);
 
 var invalidSignatureToken =
-  (token.split('.').slice(0,2).concat('invalidsignature')).join('.');
+  (token.split('.').slice(0, 2).concat('invalidsignature')).join('.');
 
-verifyJWT(invalidSignatureToken, 'secret', 'HS256', function (err, res) {
-  assert.ifError(err);
-  assert.equal(false, res);
-});
+verifyJWT(invalidSignatureToken, 'secret', 'HS256').then((res) => { assert.equal(false, res) }, assert.ifError);
 
-verifyJWT(null, 'secret', 'HS256', function (err, res) {
+verifyJWT(null, 'secret', 'HS256').then(assertNotCalled, (err) => {
   assert.equal('token must be a string', err.message);
-  assert(!res);
 });
 
-verifyJWT({}, 'secret', 'HS256', function (err, res) {
+verifyJWT({}, 'secret', 'HS256').then(assertNotCalled, (err) => {
   assert.equal('token must be a string', err.message);
-  assert(!res);
 });
 
-verifyJWT(token, null, 'HS256', function (err, res) {
+verifyJWT(token, null, 'HS256').then(assertNotCalled, (err) => {
   assert.equal('secret must be a string', err.message);
-  assert(!res);
 });
 
-verifyJWT(token, {}, 'HS256', function (err, res) {
+verifyJWT(token, {}, 'HS256').then(assertNotCalled, (err) => {
   assert.equal('secret must be a string', err.message);
-  assert(!res);
 });
 
-verifyJWT('foo', 'secret', 'HS256', function (err, res) {
+verifyJWT('foo', 'secret', 'HS256').then(assertNotCalled, (err) => {
   assert.equal('token must have 3 parts', err.message);
-  assert(!res);
 });
 
-verifyJWT(token, 'secret', null, function (err, res) {
+verifyJWT(token, 'secret', null).then(assertNotCalled, (err) => {
   assert.equal('alg must be a string', err.message);
-  assert(!res);
 });
 
-verifyJWT(token, 'secret', 'POSE123', function (err, res) {
-  assert.equal('algorithm not found', err.message);
-  assert(!res);
+verifyJWT(token, 'secret', 'POSE123').then(assertNotCalled, (err) => {
+  assert.equal('Expecting HS256 or ES256 for alg', err.message);
 });
 
-assert.throws(function () {
-  verifyJWT();
-});
+verifyJWT().then(assertNotCalled, (err) => { assert(err); });
 
-assert.throws(function () {
-  verifyJWT(token, 'secret', 'HS256', null);
-});
+verifyJWT(token, 'secret', 'HS256', null).then(assertNotCalled, (err) => { assert(err); });
 
-signJWT({user: 'john.doe'}, 'secret', 'HS256', function (err, res) {
-  assert.ifError(err);
+signJWT({ user: 'john.doe' }, 'secret', 'HS256').then((res) => {
   var expectedToken = [
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
     'eyJ1c2VyIjoiam9obi5kb2UifQ',
     'gznFhZxGqtZhWcu0S6gKIgXLcF7kKiV2ZJpLy3ieH1Y'
   ];
-
   assert.equal(expectedToken.join('.'), res);
-});
+}, assertNotCalled);
 
-signJWT(null, 'secret', 'HS256', function (err, res) {
+signJWT(null, 'secret', 'HS256').then(assertNotCalled, (err) => {
   assert.equal('payload must be an object', err.message);
-  assert(!res);
 });
 
-signJWT({}, null, 'HS256', function (err, res) {
+signJWT({}, null, 'HS256').then(assertNotCalled, (err) => {
   assert.equal('secret must be a string', err.message);
-  assert(!res);
 });
 
-signJWT({}, {}, 'HS256', function (err, res) {
+signJWT({}, {}, 'HS256').then(assertNotCalled, (err) => {
   assert.equal('secret must be a string', err.message);
-  assert(!res);
 });
 
-signJWT({}, 'secret', null, function (err, res) {
+signJWT({}, 'secret', null).then(assertNotCalled, (err) => {
   assert.equal('alg must be a string', err.message);
-  assert(!res);
 });
 
-signJWT({}, 'secret', {}, function (err, res) {
+signJWT({}, 'secret', {}).then(assertNotCalled, (err) => {
   assert.equal('alg must be a string', err.message);
-  assert(!res);
 });
 
-signJWT({foo: 'bar'}, 'secret', 'POSE123', function (err, res) {
+signJWT({foo: 'bar'}, 'secret', 'POSE123').then(assertNotCalled, (err) => {
   assert.equal('algorithm not found', err.message);
-  assert(!res);
 });
 
-assert.throws(function () {
-  signJWT(token, 'secret', 'HS256', null);
-});
+signJWT().then(assertNotCalled, (err) => { assert(err); });
 
-assert.throws(function () {
-  signJWT();
-});
+signJWT(token, 'secret', 'HS256', null).then(assertNotCalled, (err) => { assert(err); });
 
 // Roundtrip
 signJWT({foo: 'bar'}, 'secret', 'HS256', function (err, token) {
@@ -132,27 +102,28 @@ signJWT({foo: 'bar'}, 'secret', 'HS256', function (err, token) {
   });
 });
 
+signJWT({foo: 'bar'}, 'secret', 'HS256').then((token) => {
+  verifyJWT(token, 'secret', 'HS256').then((valid) => {
+    assert(valid);
+  }, assertNotCalled);
+}, assertNotCalled);
+
 var emojiString = {'hello 😉': 'bye 😬'};
 
-signJWT(emojiString, 'secret', 'HS256', function (err, token) {
-  assert.ifError(err);
+signJWT(emojiString, 'secret', 'HS256').then((token) => {
   assert(token);
-  verifyJWT(token, 'secret', 'HS256', function (err, valid) {
-    assert.ifError(err);
+  verifyJWT(token, 'secret', 'HS256').then((valid) => {
     assert(valid);
     var result = decodeJWT(token);
     assert.equal(result, JSON.stringify(emojiString));
-  });
-});
+  }, assertNotCalled);
+}, assertNotCalled);
 
-var utf8String = {'phone': 'John’s Phone'};
-signJWT(emojiString, 'secret', 'HS256', function (err, token) {
-  assert.ifError(err);
+signJWT(emojiString, 'secret', 'HS256').then((token) => {
   assert(token);
-  verifyJWT(token, 'secret', 'HS256', function (err, valid) {
-    assert.ifError(err);
+  verifyJWT(token, 'secret', 'HS256').then((valid) => {
     assert(valid);
     var result = decodeJWT(token);
     assert.equal(result, JSON.stringify(emojiString));
-  });
-});
+  }, assertNotCalled);
+}, assertNotCalled);

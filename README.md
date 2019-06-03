@@ -6,6 +6,22 @@ JSON Web Tokens (JWT) verify/sign implementation using W3C Web Cryptography (cry
 
 The following browsers are supported without shims: IE TP, Firefox 35+ and Chrome 37+. Safari is not currently working. For more information about compatiblity check [web cryptography browser support](http://caniuse.com/#feat=cryptography).
 
+#### Get asymmetric keys in the JWK format
+
+```
+npm i -g node-jose-tools
+```
+
+Convert a key to JWK (the resulting newly created "key store" is output as JSON, grab the key from it)
+```
+jose addkey -C ./feenixpub.pem
+```
+
+Create a new EC key (JWK key output)
+```
+jose newkey -t EC -s P-384
+```
+
 #### Install
 
 With npm:
