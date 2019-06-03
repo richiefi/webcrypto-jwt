@@ -154,7 +154,7 @@
     }, cb);
   }
 
-  function verifyJWTES(token, publicKey, curve, cb) {
+  function verifyJWTES(token, publicKey, curve, hash, cb) {
     if (!isObject(publicKey)) {
       return cb(new Error('publicKey must be a JWK object'));
     }
@@ -167,7 +167,7 @@
     var importAlgorithm = {
       name: 'ECDSA',
       namedCurve: curve,
-      hash: 'SHA-256',
+      hash,
     };
 
     cryptoSubtle.importKey(
@@ -207,9 +207,9 @@
     if (alg === 'HS256') {
       return verifyJWTHS256(token, key, cb);
     } else if (alg === 'ES256') {
-      return verifyJWTES(token, key, 'P-256', cb);
+      return verifyJWTES(token, key, 'P-256', 'SHA-256', cb);
     } else if (alg === 'ES384') {
-      return verifyJWTES(token, key, 'P-384', cb);
+      return verifyJWTES(token, key, 'P-384', 'SHA-384', cb);
     } else {
       return cb(new Error('Expecting HS256, ES256 or ES384 for alg'));
     }
